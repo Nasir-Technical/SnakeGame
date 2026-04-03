@@ -12,6 +12,21 @@ int main()
     std::vector<sf::Vector2f> snake;
     snake.push_back({200, 200}); // head
 
+    // Score Variable
+    int score = 0;
+
+    sf::Font font;
+    if (!font.openFromFile("Super Youth.ttf"))
+    {
+        return -1; // agar font load fail ho
+    }
+
+    sf::Text scoreText(font, "", 24);
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(24);
+    scoreText.setFillColor(sf::Color::White);
+    scoreText.setPosition({10, 10});
+
     // 🍎 Food Setup
     sf::RectangleShape food(sf::Vector2f(20, 20));
     food.setFillColor(sf::Color::Red);
@@ -106,6 +121,7 @@ int main()
         {
             // 🌱 Activate grow
             grow = true;
+            score++;
 
             // 🎲 Respawn food (safe position)
             bool valid = false;
@@ -151,9 +167,12 @@ int main()
             }
         }
 
+        scoreText.setString("Score: " + std::to_string(score));
+
         // 🖼️ Render System
         window.clear();
-
+        // Draw Score
+        window.draw(scoreText);
         // 🟩 Draw Snake
         for (auto &segment : snake)
         {
