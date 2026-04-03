@@ -1,34 +1,58 @@
 #include <SFML/Graphics.hpp>
-#include <cstdlib> // random
-#include <ctime>  // time
+#include <vector>
+#include <cstdlib>
+#include <ctime>
 
 int main()
 {
     // 🪟 Window Setup
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Snake Game");
 
-    // 🟩 Snake Head (Rectangle Shape)
-    sf::RectangleShape snake(sf::Vector2f(20, 20)); // size (width, height)
-    snake.setFillColor(sf::Color::Green);
-    snake.setPosition({200, 200});
+    // 🟩 Snake body (positions)
+    std::vector<sf::Vector2f> snake;
+    snake.push_back({200, 200}); // head
 
-    // 🍎 Food
+    // 🍎 Food Setup
     sf::RectangleShape food(sf::Vector2f(20, 20));
     food.setFillColor(sf::Color::Red);
 
-    // 🎲 Random seed
     srand(time(0));
-    food.setPosition({(rand() % 40) * 20, (rand() % 30) *  20});
 
-    // ➡️ Direction System (Start moving right)
+    // 🎲 Food Spawn Logic (avoid snake body)
+    bool valid = false;
+    while (!valid)
+    {
+        sf::Vector2f newPos = {
+            static_cast<float>((rand() % 40) * 20),
+            static_cast<float>((rand() % 30) * 20)};
+
+        valid = true;
+
+        for (auto &segment : snake)
+        {
+            if (segment == newPos)
+            {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid)
+            food.setPosition(newPos);
+    }
+
+    // ➡️ Direction System
     sf::Vector2f direction(20, 0);
 
-    // ⏱️ Timing System (Auto movement speed control)
+    // ⏱️ Timing System
     sf::Clock clock;
-    float delay = 0.15f; // lower = faster
+    float delay = 0.15f;
 
-    // 🎯 Score
-    int score = 0;
+    // 💀 Game Over System
+    bool gameOver = false;
+
+    // 🌱 Grow System (IMPORTANT)
+    bool grow = false;
 
     while (window.isOpen())
     {
@@ -39,59 +63,115 @@ int main()
                 window.close();
         }
 
-        // 🎮 Direction Control (ONLY change direction, no movement here)
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) && direction.x == 0)
-            direction = {-20, 0};
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) && direction.x == 0)
-            direction = {20, 0};
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) && direction.y == 0)
-            direction = {0, -20};
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && direction.y == 0)
-            direction = {0, 20};
-
-        // ⚡ Auto Movement (Snake moves automatically after delay)
-        if (clock.getElapsedTime().asSeconds() > delay)
+        // 🎮 Input Direction Control (no reverse)
+        if (!gameOver)
         {
-            snake.move(direction);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) && direction.x == 0)
+                direction = {-20, 0};
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) && direction.x == 0)
+                direction = {20, 0};
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) && direction.y == 0)
+                direction = {0, -20};
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && direction.y == 0)
+                direction = {0, 20};
+        }
+
+        // ⚡ Auto Movement System
+        if (!gameOver && clock.getElapsedTime().asSeconds() > delay)
+        {
+            // 🌱 Grow Logic (add new segment before move)
+            if (grow)
+            {
+                snake.push_back(snake.back());
+                grow = false;
+            }
+
+            // 🧠 Move body from back
+            for (int i = snake.size() - 1; i > 0; i--)
+            {
+                snake[i] = snake[i - 1];
+            }
+
+            // 🟩 Move head
+            snake[0] += direction;
+
             clock.restart();
         }
 
-        // 💥 Collision (Snake eats food)
-        if (snake.getPosition() == food.getPosition())
+        // 💥 Food Collision System
+        if (!gameOver && snake[0] == food.getPosition())
         {
-            score++; // score increase
+            // 🌱 Activate grow
+            grow = true;
 
-            // 🎲 Respawn food at random position
-            food.setPosition({(rand() % 40) * 20, (rand() % 30) * 20});
+            // 🎲 Respawn food (safe position)
+            bool valid = false;
+            while (!valid)
+            {
+                sf::Vector2f newPos = {
+                    static_cast<float>((rand() % 40) * 20),
+                    static_cast<float>((rand() % 30) * 20)};
+
+                valid = true;
+
+                for (auto &segment : snake)
+                {
+                    if (segment == newPos)
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid)
+                    food.setPosition(newPos);
+            }
         }
 
-        // 🚧 Boundary System (Keep snake inside screen)
-        sf::Vector2f pos = snake.getPosition();
-        float size = 20; // snake block size
+        // 💀 Wall Collision System
+        float size = 20;
+        if (snake[0].x < 0 || snake[0].x + size > 800 ||
+            snake[0].y < 0 || snake[0].y + size > 600)
+        {
+            gameOver = true;
+        }
 
-        // Left boundary
-        if (pos.x < 0)
-            snake.setPosition({0, pos.y});
+        // 💀 Self Collision System
+        if (!gameOver)
+        {
+            for (int i = 1; i < snake.size(); i++)
+            {
+                if (snake[0] == snake[i])
+                {
+                    gameOver = true;
+                }
+            }
+        }
 
-        // Right boundary
-        if (pos.x + size > 800)
-            snake.setPosition({800 - size, pos.y});
-
-        // Top boundary
-        if (pos.y < 0)
-            snake.setPosition({pos.x, 0});
-
-        // Bottom boundary
-        if (pos.y + size > 600)
-            snake.setPosition({pos.x, 600 - size});
-
-        // 🖼️ Render Section
+        // 🖼️ Render System
         window.clear();
-        window.draw(snake);
+
+        // 🟩 Draw Snake
+        for (auto &segment : snake)
+        {
+            sf::RectangleShape block(sf::Vector2f(20, 20));
+            block.setFillColor(sf::Color::Green);
+            block.setPosition(segment);
+            window.draw(block);
+        }
+
+        // 🍎 Draw Food
         window.draw(food);
+
+        // 💀 Game Over UI
+        if (gameOver)
+        {
+            window.setTitle("Game Over!");
+        }
+
         window.display();
     }
 
