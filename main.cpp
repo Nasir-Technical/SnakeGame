@@ -3,6 +3,54 @@
 #include <cstdlib>
 #include <ctime>
 
+// Reset Game Function
+void resetGame(std::vector<sf::Vector2f> &snake,
+               sf::Vector2f &direction,
+               sf::RectangleShape &food,
+               bool &gameOver,
+               bool &grow,
+               int &score)
+{
+    // Reset Snake
+    snake.clear();
+    snake.push_back({200, 200}); // head
+
+    // Reset Direction
+    direction = {20, 0};
+
+    // Reset Game State
+    gameOver = false;
+
+    // Reset Grow State
+    grow = false;
+
+    // Reset Score
+    score = 0;
+
+    // Respawn food safely
+    bool valid = false;
+    while (!valid)
+    {
+        sf::Vector2f newPos = {
+            static_cast<float>((rand() % 40) * 20),
+            static_cast<float>((rand() % 30) * 20)};
+
+        valid = true;
+
+        for (auto &segment : snake)
+        {
+            if (segment == newPos)
+            {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid)
+            food.setPosition(newPos);
+    }
+}
+
 int main()
 {
     // 🪟 Window Setup
@@ -93,6 +141,17 @@ int main()
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && direction.y == 0)
                 direction = {0, 20};
         }
+
+        // Restart on R press
+        if (gameOver && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
+        {
+            resetGame(snake, direction, food, gameOver, grow, score);
+        }
+
+        // if (gameOver)
+        // {
+        //     scoreText.setString("Game Over! Press R to Restart\nScore" + std::to_string(score));
+        // }
 
         // ⚡ Auto Movement System
         if (!gameOver && clock.getElapsedTime().asSeconds() > delay)
