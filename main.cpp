@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -23,6 +24,9 @@ void resetGame(std::vector<sf::Vector2f> &snake,
 
     // Reset Grow State
     grow = false;
+
+    // Reset Game Over Sound State
+    // gameOverSoundPlayed = false;
 
     // Reset Score
     score = 0;
@@ -63,6 +67,9 @@ int main()
     // Score Variable
     int score = 0;
 
+    // GAME OVER SOUND VARIABLE
+    bool gameOverSoundPlayed = false;
+
     sf::Font font;
     if (!font.openFromFile("Super Youth.ttf"))
     {
@@ -74,6 +81,19 @@ int main()
     scoreText.setCharacterSize(24);
     scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition({10, 10});
+
+    // sound effects
+    sf::SoundBuffer eatBuffer;
+    sf::SoundBuffer gameOverBuffer;
+
+    if (!eatBuffer.loadFromFile("eat.wav") || !gameOverBuffer.loadFromFile("gameover.wav"))
+    {
+        return -1; // agar sound load fail ho
+    }
+
+    // create sound objects
+    sf::Sound eatSound(eatBuffer);
+    sf::Sound gameOverSound(gameOverBuffer);
 
     // 🍎 Food Setup
     sf::RectangleShape food(sf::Vector2f(20, 20));
@@ -146,6 +166,7 @@ int main()
         if (gameOver && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
         {
             resetGame(snake, direction, food, gameOver, grow, score);
+            gameOverSoundPlayed = false; // Reset game over sound state
         }
 
         // if (gameOver)
@@ -181,6 +202,7 @@ int main()
             // 🌱 Activate grow
             grow = true;
             score++;
+            eatSound.play();
 
             // 🎲 Respawn food (safe position)
             bool valid = false;
@@ -208,8 +230,8 @@ int main()
 
         // 💀 Wall Collision System
         float size = 20;
-        if (snake[0].x < 0 || snake[0].x + size > 800 ||
-            snake[0].y < 0 || snake[0].y + size > 600)
+        if (!gameOver && (snake[0].x < 0 || snake[0].x + size > 800 ||
+                          snake[0].y < 0 || snake[0].y + size > 600))
         {
             gameOver = true;
         }
@@ -227,6 +249,12 @@ int main()
         }
 
         scoreText.setString("Score: " + std::to_string(score));
+
+        if (gameOver && !gameOverSoundPlayed)
+        {
+            gameOverSound.play();
+            gameOverSoundPlayed = true;
+        }
 
         // 🖼️ Render System
         window.clear();
