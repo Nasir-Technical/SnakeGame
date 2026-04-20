@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <ctime>
 
-// Reset Game Function
+// 🔁 Reset Game Function
 void resetGame(std::vector<sf::Vector2f> &snake,
                sf::Vector2f &direction,
                sf::RectangleShape &food,
@@ -12,26 +12,23 @@ void resetGame(std::vector<sf::Vector2f> &snake,
                bool &grow,
                int &score)
 {
-    // Reset Snake
+    // 🟩 Reset Snake
     snake.clear();
-    snake.push_back({200, 200}); // head
+    snake.push_back({200, 200});
 
-    // Reset Direction
+    // ➡️ Reset Direction
     direction = {20, 0};
 
-    // Reset Game State
+    // 💀 Reset Game State
     gameOver = false;
 
-    // Reset Grow State
+    // 🌱 Reset Grow
     grow = false;
 
-    // Reset Game Over Sound State
-    // gameOverSoundPlayed = false;
-
-    // Reset Score
+    // 🎯 Reset Score
     score = 0;
 
-    // Respawn food safely
+    // 🍎 Respawn Food (safe)
     bool valid = false;
     while (!valid)
     {
@@ -60,95 +57,107 @@ int main()
     // 🪟 Window Setup
     sf::RenderWindow window(sf::VideoMode({800, 600}), "Snake Game");
 
-    // 🟩 Snake body (positions)
-    std::vector<sf::Vector2f> snake;
-    snake.push_back({200, 200}); // head
+    srand(time(0));
 
-    // Score Variable
-    int score = 0;
-
-    // GAME OVER SOUND VARIABLE
-    bool gameOverSoundPlayed = false;
-
-    sf::Font font;
-    if (!font.openFromFile("Super Youth.ttf"))
+    // 🎮 Game State System
+    enum GameState
     {
-        return -1; // agar font load fail ho
-    }
+        MENU,
+        PLAYING,
+        GAME_OVER
+    };
 
-    sf::Text scoreText(font, "", 24);
-    scoreText.setFont(font);
-    scoreText.setCharacterSize(24);
-    scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition({10, 10});
+    GameState gameState = MENU;
 
-    // sound effects
-    sf::SoundBuffer eatBuffer;
-    sf::SoundBuffer gameOverBuffer;
+    // 🟩 Snake Data
+    std::vector<sf::Vector2f> snake = {{200, 200}};
 
-    if (!eatBuffer.loadFromFile("eat.wav") || !gameOverBuffer.loadFromFile("gameover.wav"))
-    {
-        return -1; // agar sound load fail ho
-    }
+    // ➡️ Direction
+    sf::Vector2f direction(20, 0);
 
-    // create sound objects
-    sf::Sound eatSound(eatBuffer);
-    sf::Sound gameOverSound(gameOverBuffer);
-
-    // 🍎 Food Setup
+    // 🍎 Food
     sf::RectangleShape food(sf::Vector2f(20, 20));
     food.setFillColor(sf::Color::Red);
 
-    srand(time(0));
+    // 🎲 Initial Food Spawn
+    food.setPosition({200, 100});
 
-    // 🎲 Food Spawn Logic (avoid snake body)
-    bool valid = false;
-    while (!valid)
-    {
-        sf::Vector2f newPos = {
-            static_cast<float>((rand() % 40) * 20),
-            static_cast<float>((rand() % 30) * 20)};
-
-        valid = true;
-
-        for (auto &segment : snake)
-        {
-            if (segment == newPos)
-            {
-                valid = false;
-                break;
-            }
-        }
-
-        if (valid)
-            food.setPosition(newPos);
-    }
-
-    // ➡️ Direction System
-    sf::Vector2f direction(20, 0);
-
-    // ⏱️ Timing System
+    // ⏱️ Timing
     sf::Clock clock;
     float delay = 0.15f;
 
-    // 💀 Game Over System
+    // 💀 Game Flags
     bool gameOver = false;
-
-    // 🌱 Grow System (IMPORTANT)
     bool grow = false;
+    bool gameOverSoundPlayed = false;
 
+    // 🎯 Score
+    int score = 0;
+
+    // 🔤 Font
+    sf::Font font;
+    if (!font.openFromFile("Super Youth.ttf"))
+        return -1;
+
+    // 🧾 UI Texts
+    sf::Text scoreText(font, "", 24);
+    scoreText.setPosition({10, 10});
+
+    sf::Text title(font, "SNAKE GAME", 40);
+    title.setPosition({220, 150});
+
+    sf::Text playText(font, "Press ENTER to Play", 24);
+    playText.setPosition({240, 250});
+
+    sf::Text exitText(font, "Press ESC to Exit", 24);
+    exitText.setPosition({250, 300});
+
+    sf::Text gameOverText(font, "GAME OVER", 40);
+    gameOverText.setPosition({250, 200});
+
+    sf::Text restartText(font, "Press R to Restart", 24);
+    restartText.setPosition({250, 300});
+
+    // 🔊 Sounds
+    sf::SoundBuffer eatBuffer, gameOverBuffer;
+    eatBuffer.loadFromFile("eat.wav");
+    gameOverBuffer.loadFromFile("gameover.wav");
+
+    sf::Sound eatSound(eatBuffer);
+    sf::Sound gameOverSound(gameOverBuffer);
+
+    // 🔁 GAME LOOP
     while (window.isOpen())
     {
-        // ❌ Window Close Event
+        // ❌ Window Events
         while (const std::optional event = window.pollEvent())
         {
             if (event->is<sf::Event::Closed>())
                 window.close();
         }
 
-        // 🎮 Input Direction Control (no reverse)
-        if (!gameOver)
+        // =========================
+        // 🎮 MENU INPUT SYSTEM
+        // =========================
+        if (gameState == MENU)
         {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
+            {
+                gameState = PLAYING;
+            }
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+            {
+                window.close();
+            }
+        }
+
+        // =========================
+        // 🔁 GAMEPLAY SYSTEM
+        // =========================
+        if (gameState == PLAYING)
+        {
+            // 🎮 Direction Input
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) && direction.x == 0)
                 direction = {-20, 0};
 
@@ -160,122 +169,133 @@ int main()
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && direction.y == 0)
                 direction = {0, 20};
-        }
 
-        // Restart on R press
-        if (gameOver && sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
-        {
-            resetGame(snake, direction, food, gameOver, grow, score);
-            gameOverSoundPlayed = false; // Reset game over sound state
-        }
-
-        // if (gameOver)
-        // {
-        //     scoreText.setString("Game Over! Press R to Restart\nScore" + std::to_string(score));
-        // }
-
-        // ⚡ Auto Movement System
-        if (!gameOver && clock.getElapsedTime().asSeconds() > delay)
-        {
-            // 🌱 Grow Logic (add new segment before move)
-            if (grow)
+            // ⚡ Movement
+            if (clock.getElapsedTime().asSeconds() > delay)
             {
-                snake.push_back(snake.back());
-                grow = false;
-            }
-
-            // 🧠 Move body from back
-            for (int i = snake.size() - 1; i > 0; i--)
-            {
-                snake[i] = snake[i - 1];
-            }
-
-            // 🟩 Move head
-            snake[0] += direction;
-
-            clock.restart();
-        }
-
-        // 💥 Food Collision System
-        if (!gameOver && snake[0] == food.getPosition())
-        {
-            // 🌱 Activate grow
-            grow = true;
-            score++;
-            eatSound.play();
-
-            // 🎲 Respawn food (safe position)
-            bool valid = false;
-            while (!valid)
-            {
-                sf::Vector2f newPos = {
-                    static_cast<float>((rand() % 40) * 20),
-                    static_cast<float>((rand() % 30) * 20)};
-
-                valid = true;
-
-                for (auto &segment : snake)
+                // 🌱 Grow Logic
+                if (grow)
                 {
-                    if (segment == newPos)
-                    {
-                        valid = false;
-                        break;
-                    }
+                    snake.push_back(snake.back());
+                    grow = false;
                 }
 
-                if (valid)
-                    food.setPosition(newPos);
+                // 🧠 Move Body
+                for (int i = snake.size() - 1; i > 0; i--)
+                    snake[i] = snake[i - 1];
+
+                // 🟩 Move Head
+                snake[0] += direction;
+
+                clock.restart();
             }
-        }
 
-        // 💀 Wall Collision System
-        float size = 20;
-        if (!gameOver && (snake[0].x < 0 || snake[0].x + size > 800 ||
-                          snake[0].y < 0 || snake[0].y + size > 600))
-        {
-            gameOver = true;
-        }
+            // 💥 Food Collision
+            if (snake[0] == food.getPosition())
+            {
+                grow = true;
+                score++;
+                eatSound.play();
 
-        // 💀 Self Collision System
-        if (!gameOver)
-        {
+                // 🍎 Respawn Food
+                bool valid = false;
+                while (!valid)
+                {
+                    sf::Vector2f newPos = {
+                        static_cast<float>((rand() % 40) * 20),
+                        static_cast<float>((rand() % 30) * 20)};
+
+                    valid = true;
+
+                    for (auto &segment : snake)
+                    {
+                        if (segment == newPos)
+                        {
+                            valid = false;
+                            break;
+                        }
+                    }
+
+                    if (valid)
+                        food.setPosition(newPos);
+                }
+            }
+
+            // 💀 Wall Collision
+            if (snake[0].x < 0 || snake[0].x >= 800 ||
+                snake[0].y < 0 || snake[0].y >= 600)
+            {
+                gameState = GAME_OVER;
+                gameOver = true;
+            }
+
+            // 💀 Self Collision
             for (int i = 1; i < snake.size(); i++)
             {
                 if (snake[0] == snake[i])
                 {
+                    gameState = GAME_OVER;
                     gameOver = true;
                 }
             }
         }
 
+        // =========================
+        // 💀 GAME OVER SYSTEM
+        // =========================
+        if (gameState == GAME_OVER)
+        {
+            if (!gameOverSoundPlayed)
+            {
+                gameOverSound.play();
+                gameOverSoundPlayed = true;
+            }
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
+            {
+                resetGame(snake, direction, food, gameOver, grow, score);
+                gameState = PLAYING;
+                gameOverSoundPlayed = false;
+            }
+        }
+
+        // 🎯 Score Update
         scoreText.setString("Score: " + std::to_string(score));
 
-        if (gameOver && !gameOverSoundPlayed)
-        {
-            gameOverSound.play();
-            gameOverSoundPlayed = true;
-        }
-
-        // 🖼️ Render System
+        // =========================
+        // 🖼️ RENDER SYSTEM
+        // =========================
         window.clear();
-        // Draw Score
-        window.draw(scoreText);
-        // 🟩 Draw Snake
-        for (auto &segment : snake)
+
+        // 📜 MENU SCREEN
+        if (gameState == MENU)
         {
-            sf::RectangleShape block(sf::Vector2f(20, 20));
-            block.setFillColor(sf::Color::Green);
-            block.setPosition(segment);
-            window.draw(block);
+            window.draw(title);
+            window.draw(playText);
+            window.draw(exitText);
         }
 
-        // 🍎 Draw Food
-        window.draw(food);
-
-        // 💀 Game Over UI
-        if (gameOver)
+        // 🐍 GAMEPLAY SCREEN
+        else if (gameState == PLAYING)
         {
-            window.setTitle("Game Over!");
+            window.draw(scoreText);
+
+            for (auto &segment : snake)
+            {
+                sf::RectangleShape block(sf::Vector2f(20, 20));
+                block.setFillColor(sf::Color::Green);
+                block.setPosition(segment);
+                window.draw(block);
+            }
+
+            window.draw(food);
+        }
+
+        // 💀 GAME OVER SCREEN
+        else if (gameState == GAME_OVER)
+        {
+            window.draw(gameOverText);
+            window.draw(restartText);
         }
 
         window.display();
